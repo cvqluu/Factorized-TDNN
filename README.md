@@ -27,7 +27,7 @@ tdnn_f(test_input).shape # returns (5, 100, 512)
 
 tdnn_f.step_semi_orth() # The key method to constrain the first two convolutions, perform after every SGD step
 
-tdnn_f.orth_error() # This returns the frobenius norm of the two constrained convs, useful for debugging
+tdnn_f.orth_error() # This returns the orth error of the constrained convs, useful for debugging
 ```
 
 The implementation of the `.step_semi_orth()` method has been made to be as close to `ConstrainOrthonormalInternal` from [nnet-utils.cc](https://github.com/kaldi-asr/kaldi/blob/master/src/nnet3/nnet-utils.cc) in Kaldi's `nnet3` module.
