@@ -35,12 +35,16 @@ The implementation of the `.step_semi_orth()` method has been made to be as clos
 # Extras
 
 Also included in this repo in `models.py` is the following:
- * `FTDNN`: Factorized TDNN x-vector architecture (FTDNN) seen in  ["State-of-the-art speaker recognition with neural network embeddings in NIST SRE18 and Speakers in the Wild evaluations"](https://www.sciencedirect.com/science/article/pii/S0885230819302700)[2]. (This is not EXACTLY the same, but should be close enough).
+ * `FTDNN`: Factorized TDNN x-vector architecture (FTDNN) up to the embedding layer seen in  ["State-of-the-art speaker recognition with neural network embeddings in NIST SRE18 and Speakers in the Wild evaluations"](https://www.sciencedirect.com/science/article/pii/S0885230819302700)[2]. (This is not EXACTLY the same, but should be close enough).
  * `SharedDimScaleDropout`: The shared dimension scaled dropout described in [1] and in Kaldi:
      * Instead of randomly setting inputs to 0, use a continuous dropout scale.
      * For a dropout 'strength' alpha, multiply inputs inputs by a mask sampled from the uniform distribution on the interval [1 - 2 \* alpha, 1 + 2 \* alpha].
      * Share dropout masks along a dimension, such as time. From [1]: "If, for instance, a dimension is zeroed on a particular frame it will be zeroed on all frames of that sequence".
 
+![model_fig](figures/ftdnn_arch.png?raw=true "ftdnn arch") The FTDNN x-vector architecture description taken from [2]. Up until layer 12 is implemented in `FTDNN` in `models.py`.
+
+
+# Demo [WIP]
 
 An demonstration of the `FTDNN` model being trained can be seen in the following output log (code not included, TODO: basic experiment demo):
 
