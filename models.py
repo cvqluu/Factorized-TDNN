@@ -88,7 +88,7 @@ class SOrthConv(nn.Module):
         with torch.no_grad():
             orig_shape = conv1dlayer.weight.shape
             M = conv1dlayer.weight.reshape(
-                orig_shape[0], orig_shape[1]*orig_shape[2])
+                orig_shape[0], orig_shape[1]*orig_shape[2]).T
             mshape = M.shape
             if mshape[0] > mshape[1]:  # semi orthogonal constraint for rows > cols
                 M = M.T
@@ -96,7 +96,6 @@ class SOrthConv(nn.Module):
             PP = torch.mm(P, P.T)
             trace_P = torch.trace(P)
             trace_PP = torch.trace(PP)
-            ratio = trace_PP * P.shape[0] / (trace_P * trace_P)
             scale2 = torch.sqrt(trace_PP/trace_P) ** 2
             update = P - (torch.matrix_power(P, 0) * scale2)
             return torch.norm(update, p='fro')
