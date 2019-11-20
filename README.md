@@ -83,6 +83,12 @@ Orth error: 0.00768740743296803
 
 The FTDNN x-vector architecture seems to train successfully, and most importantly the Orth error is minimized.
 
+# TODOs
+
+* Implement 'scaled' case of semi-orthogonal constraint
+* Refactor so that seq_len is final dim (or not?)
+* Simple experiment/toy demo
+
 # References
 
 ```
