@@ -35,6 +35,7 @@ The implementation of the `.step_semi_orth()` method has been made to be as clos
 # Extras
 
 Also included in this repo in `models.py` is the following:
+ * `SOrthConv`: A single Conv1d with a `.step_semi_orth()` method, in case this is wanted in isolation. This is useful for instance if wanting to implement the standard 2-stage factorization in [1].
  * `FTDNN`: Factorized TDNN x-vector architecture (FTDNN) up to the embedding layer seen in  ["State-of-the-art speaker recognition with neural network embeddings in NIST SRE18 and Speakers in the Wild evaluations"](https://www.sciencedirect.com/science/article/pii/S0885230819302700)[2]. (This is not EXACTLY the same, but should be close enough).
  * `SharedDimScaleDropout`: The shared dimension scaled dropout described in [1] and in Kaldi:
      * Instead of randomly setting inputs to 0, use a continuous dropout scale.
@@ -87,6 +88,7 @@ The FTDNN x-vector architecture seems to train successfully, and most importantl
 
 * Implement 'scaled' case of semi-orthogonal constraint
 * Refactor so that seq_len is final dim (or not?)
+* Refactor s.t. `FTDNNLayer` uses `SOrthConv`
 * Simple experiment/toy demo
 
 # References

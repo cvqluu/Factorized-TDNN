@@ -295,3 +295,99 @@ class SharedDimScaleDropout(nn.Module):
                 return X * self.mask.repeat(tied_mask_shape).uniform_(1 - 2*self.alpha, 1 + 2*self.alpha).repeat(repeats)
                 # expected value of dropout mask is 1 so no need to scale outputs like vanilla dropout
         return X
+
+
+class SOrthConv(nn.Module):
+    
+    def __init__(self, in_dim, out_dim, bottleneck_dim, dilations=None, paddings=None, alpha=0.0):
+        '''
+        Conv1d with a method for stepping towards semi-orthongonality
+        http://danielpovey.com/files/2018_interspeech_tdnnf.pdf
+        '''
+        super(SOrthConv, self).__init__()
+
+        kwargs = {'bias':False}
+        self.conv = nn.Conv1d(in_channels, out_channels, 
+                            kernel_size, stride=stride, 
+                            padding=padding, dilation=dilation, 
+                            bias=False, padding_mode=padding_mode)
+        self.reset_parameters()
+        
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+    
+    def step_semi_orth(self):
+        with torch.no_grad():
+            M = self.get_semi_orth_weight(self.conv)
+            self.conv.weight.copy_(M)
+    
+    def reset_parameters(self):
+        # Standard dev of M init values is inverse of sqrt of num cols
+        nn.init._no_grad_normal_(self.conv.weight, 0., self.get_M_shape(self.conv.weight)[1]**-0.5)
+        
+    def orth_error(self):
+        return self.get_semi_orth_error(self.conv).item()
+       
+    @staticmethod
+    def get_semi_orth_weight(conv1dlayer):
+        # updates conv1 weight M using update rule to make it more semi orthogonal
+        # based off ConstrainOrthonormalInternal in nnet-utils.cc in Kaldi src/nnet3
+        # includes the tweaks related to slowing the update speed
+        # only an implementation of the 'floating scale' case
+        with torch.no_grad():
+            update_speed = 0.125
+            orig_shape = conv1dlayer.weight.shape
+            # a conv weight differs slightly from TDNN formulation:
+            # Conv weight: (out_filters, in_filters, kernel_width)
+            # TDNN weight M is of shape: (in_dim, out_dim) or [rows, cols]
+            # the in_dim of the TDNN weight is equivalent to in_filters * kernel_width of the Conv
+            M = conv1dlayer.weight.reshape(orig_shape[0], orig_shape[1]*orig_shape[2]).T
+            # M now has shape (in_dim[rows], out_dim[cols])
+            mshape = M.shape
+            if mshape[0] > mshape[1]: # semi orthogonal constraint for rows > cols
+                M = M.T
+            P = torch.mm(M, M.T)
+            PP = torch.mm(P, P.T)
+            trace_P = torch.trace(P)
+            trace_PP = torch.trace(PP)
+            ratio = trace_PP * P.shape[0] / (trace_P * trace_P)
+
+            # the following is the tweak to avoid divergence (more info in Kaldi)
+            assert ratio > 0.999
+            if ratio > 1.02:
+                update_speed *= 0.5
+                if ratio > 1.1:
+                    update_speed *= 0.5
+
+            scale2 = trace_PP/trace_P
+            update = P - (torch.matrix_power(P, 0) * scale2)
+            alpha = update_speed / scale2
+            update = (-4.0 * alpha) * torch.mm(update, M)
+            updated = M + update
+            # updated has shape (cols, rows) if rows > cols, else has shape (rows, cols)
+            # Transpose (or not) to shape (cols, rows) (IMPORTANT, s.t. correct dimensions are reshaped)
+            # Then reshape to (cols, in_filters, kernel_width)
+            return updated.reshape(*orig_shape) if mshape[0] > mshape[1] else updated.T.reshape(*orig_shape)
+
+    @staticmethod
+    def get_M_shape(conv_weight):
+        orig_shape = conv_weight.shape
+        return (orig_shape[1]*orig_shape[2], orig_shape[0])
+
+    @staticmethod
+    def get_semi_orth_error(conv1dlayer):
+        with torch.no_grad():
+            orig_shape = conv1dlayer.weight.shape
+            M = conv1dlayer.weight.reshape(orig_shape[0], orig_shape[1]*orig_shape[2])
+            mshape = M.shape
+            if mshape[0] > mshape[1]: # semi orthogonal constraint for rows > cols
+                M = M.T
+            P = torch.mm(M, M.T)
+            PP = torch.mm(P, P.T)
+            trace_P = torch.trace(P)
+            trace_PP = torch.trace(PP)
+            ratio = trace_PP * P.shape[0] / (trace_P * trace_P)
+            scale2 = torch.sqrt(trace_PP/trace_P) ** 2
+            update = P - (torch.matrix_power(P, 0) * scale2)
+            return torch.norm(update, p='fro')
