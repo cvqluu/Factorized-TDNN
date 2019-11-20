@@ -8,11 +8,13 @@ A TDNN-F layer is implemented in the class `FTDNNLayer` of `models.py`. To be sp
 
 # Usage
 
+## `FTDNNLayer`
+
 This `FTDNNLayer` of `models.py` is used as follows:
 
 ```python
 import torch
-from models import FTDNNLayer
+from models import FTDNNLayer, SOrthConv
 
 tdnn_f = FTDNNLayer(1280, 512, 256, context_size=2, dilations=[2,2,2], paddings=[1,1,1])
 # This is a sequence of three 2x1 convolutions
@@ -30,12 +32,19 @@ tdnn_f.step_semi_orth() # The key method to constrain the first two convolutions
 tdnn_f.orth_error() # This returns the orth error of the constrained convs, useful for debugging
 ```
 
+## `SOrthConv`
+
+The components of `FTDNNLayer` which have the semi-orthogonal constraint are based around the class `SOrthConv`, which is essentially a `nn.Conv1d` with a `.step_semi_orth()` method to perform the semi-orthogonal update as in [1].
+
+```python
+sorth_conv = SOrthConv(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, padding_mode='zeros')
+```
+
 The implementation of the `.step_semi_orth()` method has been made to be as close to `ConstrainOrthonormalInternal` from [nnet-utils.cc](https://github.com/kaldi-asr/kaldi/blob/master/src/nnet3/nnet-utils.cc) in Kaldi's `nnet3` module.
 
 # Extras
 
 Also included in this repo in `models.py` is the following:
- * `SOrthConv`: A single Conv1d with a `.step_semi_orth()` method, in case this is wanted in isolation. This is useful for instance if wanting to implement the standard 2-stage factorization in [1].
  * `FTDNN`: Factorized TDNN x-vector architecture (FTDNN) up to the embedding layer seen in  ["State-of-the-art speaker recognition with neural network embeddings in NIST SRE18 and Speakers in the Wild evaluations"](https://www.sciencedirect.com/science/article/pii/S0885230819302700)[2]. (This is not EXACTLY the same, but should be close enough).
  * `SharedDimScaleDropout`: The shared dimension scaled dropout described in [1] and in Kaldi:
      * Instead of randomly setting inputs to 0, use a continuous dropout scale.
@@ -88,7 +97,6 @@ The FTDNN x-vector architecture seems to train successfully, and most importantl
 
 * Implement 'scaled' case of semi-orthogonal constraint
 * Refactor so that seq_len is final dim (or not?)
-* Refactor s.t. `FTDNNLayer` uses `SOrthConv`
 * Simple experiment/toy demo
 
 # References
