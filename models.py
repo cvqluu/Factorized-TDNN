@@ -62,7 +62,7 @@ class SOrthConv(nn.Module):
             ratio = trace_PP * P.shape[0] / (trace_P * trace_P)
 
             # the following is the tweak to avoid divergence (more info in Kaldi)
-            assert ratio > 0.999
+            assert ratio > 0.99
             if ratio > 1.02:
                 update_speed *= 0.5
                 if ratio > 1.1:
